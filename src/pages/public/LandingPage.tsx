@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, BookOpen, Laugh, User, Globe, Wand2, Shield, Star, Check } from 'lucide-react';
+import { Sparkles, ArrowRight, BookOpen, Laugh, User, Globe, Wand2, Shield } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';

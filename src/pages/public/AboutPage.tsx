@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Shield, Users, Heart } from 'lucide-react';
+import { Sparkles, Shield, Users } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 

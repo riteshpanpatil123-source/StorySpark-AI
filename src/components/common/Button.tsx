@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export interface ButtonProps extends HTMLMotionProps<'button'> {
+  children?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'ai-gradient' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;

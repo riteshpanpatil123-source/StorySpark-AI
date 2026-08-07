@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Eye, MessageSquare, BookOpen } from 'lucide-react';
+import { Heart, Eye, BookOpen } from 'lucide-react';
 import { Story } from '@/types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';

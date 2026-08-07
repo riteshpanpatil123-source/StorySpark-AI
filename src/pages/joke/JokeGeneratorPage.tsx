@@ -1,58 +1,60 @@
-import React, { useState } from 'react';
-import { Laugh, Sparkles, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Laugh, Sparkles } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { JokeCard } from '@/components/story/JokeCard';
+import { MockDataService } from '@/services/mockDataService';
 import { Joke } from '@/types';
 import toast from 'react-hot-toast';
 
 export const JokeGeneratorPage: React.FC = () => {
-  const [topic, setTopic] = useState('Software Engineering');
+  const [topic, setTopic] = useState('Software Engineering & AI');
   const [style, setStyle] = useState('Dad Joke');
+  const [tone, setTone] = useState('Witty');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [jokes, setJokes] = useState<Joke[]>([
-    {
-      id: 'jk_1',
-      userId: 'usr_1',
-      setup: 'Why do programmers prefer dark mode?',
-      punchline: 'Because light attracts bugs!',
-      category: 'Programmer Humour',
-      ratingAverage: 4.9,
-      ratingCount: 142,
-      isPublic: true,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'jk_2',
-      userId: 'usr_1',
-      setup: 'There are 10 types of people in the world...',
-      punchline: 'Those who understand binary, and those who do not.',
-      category: 'Tech Jokes',
-      ratingAverage: 4.7,
-      ratingCount: 88,
-      isPublic: true,
-      createdAt: new Date().toISOString(),
-    },
-  ]);
+  const [jokes, setJokes] = useState<Joke[]>([]);
+
+  useEffect(() => {
+    setJokes(MockDataService.getJokes());
+  }, []);
 
   const handleGenerateJoke = () => {
     setIsGenerating(true);
+
+    const jokeTemplates = [
+      {
+        setup: `Why did the AI language model refuse to eat at the restaurant?`,
+        punchline: `Because it kept getting stuck in an infinite prompt loop!`,
+      },
+      {
+        setup: `How many full-stack developers does it take to change a lightbulb?`,
+        punchline: `None. That's a hardware problem, and the API already returns bright=true!`,
+      },
+      {
+        setup: `Why do programmers hate nature?`,
+        punchline: `It has too many bugs and no stack overflow!`,
+      },
+      {
+        setup: `What is an AI's favorite genre of music?`,
+        punchline: `Heavy Algorhythms!`,
+      },
+    ];
+
     setTimeout(() => {
-      const newJoke: Joke = {
-        id: 'jk_' + Date.now(),
-        userId: 'usr_1',
-        setup: `Why did the AI go to creative writing school?`,
-        punchline: `To learn how to process human emotions without throwing a 500 server error!`,
+      const selected = jokeTemplates[Math.floor(Math.random() * jokeTemplates.length)];
+      const newJoke = MockDataService.saveJoke({
+        setup: selected.setup,
+        punchline: selected.punchline,
         category: style,
         ratingAverage: 5.0,
         ratingCount: 1,
         isPublic: true,
-        createdAt: new Date().toISOString(),
-      };
+      });
+
       setJokes([newJoke, ...jokes]);
       setIsGenerating(false);
-      toast.success('New AI joke generated!');
-    }, 1000);
+      toast.success('New AI joke synthesized and saved to vault!');
+    }, 800);
   };
 
   return (
@@ -64,23 +66,23 @@ export const JokeGeneratorPage: React.FC = () => {
             <Laugh className="w-5 h-5 text-amber-500" />
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Craft stand-up routines, punchlines, and humorous anecdotes powered by AI.
+            Craft stand-up routines, dad jokes, puns, and tech humor powered by AI.
           </p>
         </div>
       </div>
 
-      {/* Generator Control Card */}
+      {/* Generator Control Panel */}
       <Card className="p-6 glass-panel border-amber-500/20 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5 md:col-span-1">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-              Joke Topic
+              Joke Topic / Theme
             </label>
             <input
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Artificial Intelligence, Coffee, Marriage..."
+              placeholder="e.g. Artificial Intelligence, Coffee..."
               className="w-full rounded-lg text-xs bg-white dark:bg-dark-800 border border-slate-300 dark:border-slate-700 p-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
             />
           </div>
@@ -92,7 +94,7 @@ export const JokeGeneratorPage: React.FC = () => {
             <select
               value={style}
               onChange={(e) => setStyle(e.target.value)}
-              className="w-full rounded-lg text-xs bg-white dark:bg-dark-800 border border-slate-300 dark:border-slate-700 p-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+              className="w-full rounded-lg text-xs bg-white dark:bg-dark-800 border border-slate-300 dark:border-slate-700 p-2.5 text-slate-900 dark:text-slate-100 focus:outline-none"
             >
               <option value="Dad Joke">Dad Joke</option>
               <option value="Pun">Pun / Wordplay</option>
@@ -100,21 +102,37 @@ export const JokeGeneratorPage: React.FC = () => {
               <option value="Stand-up One-liner">Stand-up One-liner</option>
             </select>
           </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+              Tone
+            </label>
+            <select
+              value={tone}
+              onChange={(e) => setTone(e.target.value)}
+              className="w-full rounded-lg text-xs bg-white dark:bg-dark-800 border border-slate-300 dark:border-slate-700 p-2.5 text-slate-900 dark:text-slate-100 focus:outline-none"
+            >
+              <option value="Witty">Witty</option>
+              <option value="Sarcastic">Sarcastic</option>
+              <option value="Family Friendly">Family Friendly</option>
+              <option value="Geeky">Geeky / Tech</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
           <Button
             variant="ai-gradient"
             isLoading={isGenerating}
             onClick={handleGenerateJoke}
             leftIcon={<Sparkles className="w-4 h-4" />}
           >
-            Generate AI Joke
+            Synthesize AI Joke
           </Button>
         </div>
       </Card>
 
-      {/* Jokes Grid */}
+      {/* Jokes Vault Grid */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider font-mono">
           Joke Vault ({jokes.length})

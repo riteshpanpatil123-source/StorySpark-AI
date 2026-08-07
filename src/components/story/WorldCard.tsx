@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Shield } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { World } from '@/types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';

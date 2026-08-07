@@ -1,5 +1,4 @@
 import React from 'react';
-import { User, Sparkles } from 'lucide-react';
 import { Character } from '@/types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';

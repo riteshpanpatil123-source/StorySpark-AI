@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Sparkles, Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAppDispatch } from '@/hooks/reduxHooks';
 import { setCredentials } from '@/store/slices/authSlice';
 import { authApi } from '@/services/api/authApi';

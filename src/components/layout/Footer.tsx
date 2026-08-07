@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Github, Twitter, Discord } from 'lucide-react';
+import { Sparkles, Github, Twitter, MessageSquare } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -22,7 +22,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-3 text-slate-400">
             <a href="#" className="hover:text-brand-500 transition-colors"><Twitter className="w-4 h-4" /></a>
             <a href="#" className="hover:text-brand-500 transition-colors"><Github className="w-4 h-4" /></a>
-            <a href="#" className="hover:text-brand-500 transition-colors"><Discord className="w-4 h-4" /></a>
+            <a href="#" className="hover:text-brand-500 transition-colors"><MessageSquare className="w-4 h-4" /></a>
           </div>
         </div>
 

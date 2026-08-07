@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Sun, Moon, Search, Bell, LogOut, User as UserIcon, Shield } from 'lucide-react';
+import { Sparkles, Sun, Moon, Search, Bell, LogOut, Shield } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/reduxHooks';
 import { toggleTheme } from '@/store/slices/themeSlice';
 import { toggleSidebar, toggleCommandPalette } from '@/store/slices/uiSlice';

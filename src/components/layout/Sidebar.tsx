@@ -21,7 +21,6 @@ import { Badge } from '../common/Badge';
 
 export const Sidebar: React.FC = () => {
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
-  const user = useAppSelector((state) => state.auth.user);
 
   const mainNav = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
@@ -35,8 +34,8 @@ export const Sidebar: React.FC = () => {
   ];
 
   const secondaryNav = [
-    { title: 'Generation History', icon: History, path: '/app/history' },
-    { title: 'Favorites', icon: Heart, path: '/app/favorites' },
+    { title: 'Public Stories', icon: History, path: '/stories' },
+    { title: 'Favorites', icon: Heart, path: '/app/library' },
     { title: 'Settings', icon: Settings, path: '/app/settings' },
     { title: 'Billing & Plan', icon: CreditCard, path: '/app/billing' },
   ];
