@@ -342,6 +342,11 @@ export class MockDataService {
     return newChar;
   }
 
+  static deleteCharacter(id: string): void {
+    const chars = this.getCharacters().filter((c) => c.id !== id);
+    localStorage.setItem(this.STORAGE_KEY_CHARACTERS, JSON.stringify(chars));
+  }
+
   // WORLDS
   static getWorlds(): World[] {
     const data = localStorage.getItem(this.STORAGE_KEY_WORLDS);
@@ -373,5 +378,10 @@ export class MockDataService {
     worlds.unshift(newWorld);
     localStorage.setItem(this.STORAGE_KEY_WORLDS, JSON.stringify(worlds));
     return newWorld;
+  }
+
+  static deleteWorld(id: string): void {
+    const worlds = this.getWorlds().filter((w) => w.id !== id);
+    localStorage.setItem(this.STORAGE_KEY_WORLDS, JSON.stringify(worlds));
   }
 }

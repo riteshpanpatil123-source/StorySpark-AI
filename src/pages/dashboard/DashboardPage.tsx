@@ -25,17 +25,22 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const [stories, setStories] = useState<Story[]>([]);
+  const [characterCount, setCharacterCount] = useState<number>(0);
+  const [worldCount, setWorldCount] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'all' | 'published' | 'drafts'>('all');
 
   useEffect(() => {
-    const loaded = MockDataService.getStories();
-    setStories(loaded);
+    const loadedStories = MockDataService.getStories();
+    setStories(loadedStories);
+    setCharacterCount(MockDataService.getCharacters().length);
+    setWorldCount(MockDataService.getWorlds().length);
   }, []);
 
   const publishedCount = stories.filter((s) => s.status === 'published').length;
   const draftCount = stories.filter((s) => s.status === 'draft').length;
   const totalViews = stories.reduce((acc, s) => acc + (s.viewCount || 0), 0);
   const totalLikes = stories.reduce((acc, s) => acc + (s.likeCount || 0), 0);
+  const totalWords = stories.reduce((acc, s) => acc + (s.wordCount || 0), 0);
 
   const displayedStories = stories.filter((s) => {
     if (activeTab === 'published') return s.status === 'published';
@@ -53,7 +58,7 @@ export const DashboardPage: React.FC = () => {
             <Sparkles className="w-5 h-5 text-ai-spark" />
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Your creative studio is active. You have <strong className="text-brand-500">4,500 / 10,000</strong> AI generation tokens remaining this cycle.
+            Your studio is active with <strong className="text-brand-500">{totalWords.toLocaleString()}</strong> words written across {stories.length} stories. <strong>4,500 / 10,000</strong> tokens remaining.
           </p>
         </div>
 
@@ -161,7 +166,7 @@ export const DashboardPage: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 font-display">
               Character Vault
             </h3>
-            <p className="text-[11px] text-slate-400 mt-1">Personas & traits</p>
+            <p className="text-[11px] text-slate-400 mt-1">{characterCount} saved personas</p>
           </Card>
 
           <Card
@@ -174,7 +179,7 @@ export const DashboardPage: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 font-display">
               World Lore
             </h3>
-            <p className="text-[11px] text-slate-400 mt-1">Rules & magic systems</p>
+            <p className="text-[11px] text-slate-400 mt-1">{worldCount} realm lore sets</p>
           </Card>
         </div>
       </div>

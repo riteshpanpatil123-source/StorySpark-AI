@@ -37,6 +37,14 @@ export const CharacterBuilderPage: React.FC = () => {
     setBackstory('');
   };
 
+  const handleDeleteCharacter = (id: string, charName: string) => {
+    if (window.confirm(`Are you sure you want to remove character "${charName}" from your vault?`)) {
+      MockDataService.deleteCharacter(id);
+      setCharacters(MockDataService.getCharacters());
+      toast.success(`Removed "${charName}" from Character Vault`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -94,7 +102,7 @@ export const CharacterBuilderPage: React.FC = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {characters.map((char) => (
-            <CharacterCard key={char.id} character={char} />
+            <CharacterCard key={char.id} character={char} onDelete={handleDeleteCharacter} />
           ))}
         </div>
       </div>

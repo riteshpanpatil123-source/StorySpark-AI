@@ -48,10 +48,14 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Display Error Toast for Server Errors
-    const errorMessage = error.response?.data?.error?.message || error.message || 'An unexpected error occurred';
-    if (error.response?.status !== 401) {
-      toast.error(errorMessage);
+    // Display Error Toast for Server or Network Errors
+    if (error.code === 'ERR_NETWORK' || !error.response) {
+      toast.error('Backend API server unavailable. Operating in local sandbox mode.');
+    } else {
+      const errorMessage = error.response?.data?.error?.message || error.message || 'An unexpected error occurred';
+      if (error.response?.status !== 401) {
+        toast.error(errorMessage);
+      }
     }
 
     return Promise.reject(error);

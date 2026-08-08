@@ -107,7 +107,29 @@ export const WritingCoachPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <p className="font-semibold text-slate-700 dark:text-slate-300">Optimized Version:</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-slate-700 dark:text-slate-300">Optimized Version:</p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(analysisResult.optimizedText);
+                          toast.success('Optimized text copied to clipboard!');
+                        }}
+                        className="px-2 py-1 rounded bg-slate-200 dark:bg-dark-700 text-[10px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                      >
+                        Copy
+                      </button>
+                      <button
+                        onClick={() => {
+                          setInputText(analysisResult.optimizedText);
+                          toast.success('Applied optimized text to canvas!');
+                        }}
+                        className="px-2 py-1 rounded bg-emerald-500/20 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30"
+                      >
+                        Apply to Input
+                      </button>
+                    </div>
+                  </div>
                   <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 font-serif leading-relaxed text-slate-800 dark:text-slate-200">
                     {analysisResult.optimizedText}
                   </div>

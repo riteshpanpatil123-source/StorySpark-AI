@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Wand2, ArrowRight, Save, Send, RefreshCw, Users, MapPin } from 'lucide-react';
+import { Sparkles, Wand2, ArrowRight, Save, Send, RefreshCw, Users, MapPin, Globe, User } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
+import { Character, World } from '@/types';
 import toast from 'react-hot-toast';
 
 export const StoryGeneratorPage: React.FC = () => {
@@ -22,6 +23,15 @@ export const StoryGeneratorPage: React.FC = () => {
   const [setting, setSetting] = useState('Sector 7 - Subterranean Orbital City');
   const [characters, setCharacters] = useState('Jax Vane (Rogue Hacker), Unit-7 (Ancient AI)');
   const [additionalInstructions] = useState('Include high-stakes tension and vivid atmospheric cyber-rain visuals.');
+
+  // Vault data integration
+  const [savedCharacters, setSavedCharacters] = useState<Character[]>([]);
+  const [savedWorlds, setSavedWorlds] = useState<World[]>([]);
+
+  useEffect(() => {
+    setSavedCharacters(MockDataService.getCharacters());
+    setSavedWorlds(MockDataService.getWorlds());
+  }, []);
 
   // Execution State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -229,18 +239,80 @@ export const StoryGeneratorPage: React.FC = () => {
 
             {/* Advanced Context: Setting & Characters */}
             <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <Input
-                label="Setting / World Context"
-                value={setting}
-                onChange={(e) => setSetting(e.target.value)}
-                leftIcon={<MapPin className="w-3.5 h-3.5" />}
-              />
-              <Input
-                label="Key Characters"
-                value={characters}
-                onChange={(e) => setCharacters(e.target.value)}
-                leftIcon={<Users className="w-3.5 h-3.5" />}
-              />
+              {/* World Lore Selection */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Setting / World Context
+                  </label>
+                  {savedWorlds.length > 0 && (
+                    <span className="text-[10px] text-emerald-500 font-medium">From World Vault:</span>
+                  )}
+                </div>
+                {savedWorlds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {savedWorlds.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => {
+                          setSetting(`${w.name} (${w.genre}) - ${w.description}`);
+                          toast.success(`Loaded world lore: ${w.name}`);
+                        }}
+                        className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] flex items-center gap-1 border border-emerald-500/20"
+                      >
+                        <Globe className="w-2.5 h-2.5" />
+                        {w.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <Input
+                  value={setting}
+                  onChange={(e) => setSetting(e.target.value)}
+                  leftIcon={<MapPin className="w-3.5 h-3.5" />}
+                  placeholder="e.g. Sector 7 - Cyberpunk Metropolis"
+                />
+              </div>
+
+              {/* Character Vault Selection */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Key Characters
+                  </label>
+                  {savedCharacters.length > 0 && (
+                    <span className="text-[10px] text-purple-500 font-medium">From Character Vault:</span>
+                  )}
+                </div>
+                {savedCharacters.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {savedCharacters.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          const charInfo = `${c.name} (${c.archetype})`;
+                          if (!characters.includes(c.name)) {
+                            setCharacters((prev) => (prev ? `${prev}, ${charInfo}` : charInfo));
+                            toast.success(`Added character: ${c.name}`);
+                          }
+                        }}
+                        className="px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] flex items-center gap-1 border border-purple-500/20"
+                      >
+                        <User className="w-2.5 h-2.5" />
+                        + {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <Input
+                  value={characters}
+                  onChange={(e) => setCharacters(e.target.value)}
+                  leftIcon={<Users className="w-3.5 h-3.5" />}
+                  placeholder="e.g. Jax Vane (Protagonist), Lyra Vance (Companion)"
+                />
+              </div>
             </div>
 
             {/* Submit Button */}

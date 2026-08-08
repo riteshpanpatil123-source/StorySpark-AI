@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Sparkles, Mail, Lock, User, ArrowRight } from 'lucide-react';
-import { useAppDispatch } from '@/hooks/reduxHooks';
+import { useAppDispatch, useAppSelector } from '@/hooks/reduxHooks';
 import { setCredentials } from '@/store/slices/authSlice';
 import { authApi } from '@/services/api/authApi';
 import { Input } from '@/components/common/Input';
@@ -23,7 +23,12 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
 
   const {
     register,

@@ -37,6 +37,14 @@ export const WorldBuilderPage: React.FC = () => {
     setDescription('');
   };
 
+  const handleDeleteWorld = (id: string, worldName: string) => {
+    if (window.confirm(`Are you sure you want to remove world "${worldName}" from your lore library?`)) {
+      MockDataService.deleteWorld(id);
+      setWorlds(MockDataService.getWorlds());
+      toast.success(`Removed "${worldName}" from World Lore`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -94,7 +102,7 @@ export const WorldBuilderPage: React.FC = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {worlds.map((w) => (
-            <WorldCard key={w.id} world={w} />
+            <WorldCard key={w.id} world={w} onDelete={handleDeleteWorld} />
           ))}
         </div>
       </div>
