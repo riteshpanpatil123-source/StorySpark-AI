@@ -5,6 +5,7 @@ import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
+import { characterApi } from '@/services/api/characterApi';
 import { Character } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -16,31 +17,73 @@ export const CharacterBuilderPage: React.FC = () => {
   const [backstory, setBackstory] = useState('An elite cyber operator who unlocked corporate encryption key archives.');
 
   useEffect(() => {
-    setCharacters(MockDataService.getCharacters());
+    loadCharacters();
   }, []);
 
-  const handleCreateCharacter = (e: React.FormEvent) => {
+  const loadCharacters = async () => {
+    try {
+      const res = await characterApi.getCharacters();
+      if (res && res.success && res.data) {
+        setCharacters(res.data);
+      } else {
+        setCharacters(MockDataService.getCharacters());
+      }
+    } catch {
+      setCharacters(MockDataService.getCharacters());
+    }
+  };
+
+  const handleCreateCharacter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const created = MockDataService.saveCharacter({
-      name,
-      archetype,
-      personalityTraits: traits.split(',').map((t) => t.trim()),
-      backstory,
-      isPublic: true,
-    });
+    try {
+      const res = await characterApi.createCharacter({
+        name,
+        archetype,
+        personalityTraits: traits.split(',').map((t) => t.trim()),
+        backstory,
+        isPublic: true,
+      });
 
-    setCharacters([created, ...characters]);
-    toast.success(`Character persona "${name}" forged!`);
+      if (res && res.success && res.data) {
+        setCharacters([res.data, ...characters]);
+        toast.success(`Character persona "${name}" saved to database!`);
+      } else {
+        const created = MockDataService.saveCharacter({
+          name,
+          archetype,
+          personalityTraits: traits.split(',').map((t) => t.trim()),
+          backstory,
+          isPublic: true,
+        });
+        setCharacters([created, ...characters]);
+        toast.success(`Character persona "${name}" forged!`);
+      }
+    } catch {
+      const created = MockDataService.saveCharacter({
+        name,
+        archetype,
+        personalityTraits: traits.split(',').map((t) => t.trim()),
+        backstory,
+        isPublic: true,
+      });
+      setCharacters([created, ...characters]);
+      toast.success(`Character persona "${name}" forged!`);
+    }
+
     setName('');
     setBackstory('');
   };
 
-  const handleDeleteCharacter = (id: string, charName: string) => {
+  const handleDeleteCharacter = async (id: string, charName: string) => {
     if (window.confirm(`Are you sure you want to remove character "${charName}" from your vault?`)) {
-      MockDataService.deleteCharacter(id);
-      setCharacters(MockDataService.getCharacters());
+      try {
+        await characterApi.deleteCharacter(id);
+      } catch {
+        MockDataService.deleteCharacter(id);
+      }
+      loadCharacters();
       toast.success(`Removed "${charName}" from Character Vault`);
     }
   };

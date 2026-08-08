@@ -9,6 +9,8 @@ import { Avatar } from '@/components/common/Avatar';
 import { Button } from '@/components/common/Button';
 import toast from 'react-hot-toast';
 
+import { storyApi } from '@/services/api/storyApi';
+
 export const PublicStoryReaderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -34,21 +36,47 @@ export const PublicStoryReaderPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      const found = MockDataService.getStoryById(id);
-      if (found) {
-        setStory(found);
-        setLikeCount(found.likeCount || 189);
-      } else {
-        // Fallback default
-        const defaultStory = MockDataService.getStories()[0];
-        setStory(defaultStory);
-        setLikeCount(defaultStory.likeCount);
-      }
+      loadStory(id);
     }
   }, [id]);
 
-  const handleLike = () => {
+  const loadStory = async (storyId: string) => {
+    try {
+      const res = await storyApi.getStoryById(storyId);
+      if (res && res.success && res.data) {
+        setStory(res.data);
+        setLikeCount(res.data.likeCount || 0);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const found = MockDataService.getStoryById(storyId);
+    if (found) {
+      setStory(found);
+      setLikeCount(found.likeCount || 189);
+    } else {
+      const defaultStory = MockDataService.getStories()[0];
+      setStory(defaultStory);
+      setLikeCount(defaultStory.likeCount);
+    }
+  };
+
+  const handleLike = async () => {
     if (!story) return;
+    try {
+      const res = await storyApi.likeStory(story.id);
+      if (res && res.success && res.data) {
+        setHasLiked(res.data.liked);
+        setLikeCount(res.data.likeCount);
+        toast.success(res.data.liked ? 'Liked story!' : 'Unliked story');
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     if (hasLiked) {
       setLikeCount((prev) => prev - 1);
       setHasLiked(false);

@@ -34,6 +34,7 @@ export interface Story {
   slug: string;
   synopsis: string;
   genre: string;
+  content?: string;
   tags: string[];
   coverImageUrl?: string;
   status: StoryStatus;
@@ -122,8 +123,10 @@ export interface AIWritingCoachPayload {
 export interface AIWritingCoachResponse {
   grammarIssues: { issue: string; suggestion: string }[];
   readabilityScore: number;
+  passiveVoiceCount?: number;
   toneAnalysis: string;
   improvements: string[];
+  optimizedText?: string;
 }
 
 // Notification Interface

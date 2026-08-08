@@ -5,6 +5,7 @@ import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
+import { worldApi } from '@/services/api/worldApi';
 import { World } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -16,31 +17,73 @@ export const WorldBuilderPage: React.FC = () => {
   const [rules, setRules] = useState('Artificial gravity fluctuates during solar flare activity.');
 
   useEffect(() => {
-    setWorlds(MockDataService.getWorlds());
+    loadWorlds();
   }, []);
 
-  const handleCreateWorld = (e: React.FormEvent) => {
+  const loadWorlds = async () => {
+    try {
+      const res = await worldApi.getWorlds();
+      if (res && res.success && res.data) {
+        setWorlds(res.data);
+      } else {
+        setWorlds(MockDataService.getWorlds());
+      }
+    } catch {
+      setWorlds(MockDataService.getWorlds());
+    }
+  };
+
+  const handleCreateWorld = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const created = MockDataService.saveWorld({
-      name,
-      genre,
-      description,
-      rules,
-      isPublic: true,
-    });
+    try {
+      const res = await worldApi.createWorld({
+        name,
+        genre,
+        description,
+        rules,
+        isPublic: true,
+      });
 
-    setWorlds([created, ...worlds]);
-    toast.success(`World lore "${name}" saved to library!`);
+      if (res && res.success && res.data) {
+        setWorlds([res.data, ...worlds]);
+        toast.success(`World lore "${name}" saved to database!`);
+      } else {
+        const created = MockDataService.saveWorld({
+          name,
+          genre,
+          description,
+          rules,
+          isPublic: true,
+        });
+        setWorlds([created, ...worlds]);
+        toast.success(`World lore "${name}" saved!`);
+      }
+    } catch {
+      const created = MockDataService.saveWorld({
+        name,
+        genre,
+        description,
+        rules,
+        isPublic: true,
+      });
+      setWorlds([created, ...worlds]);
+      toast.success(`World lore "${name}" saved!`);
+    }
+
     setName('');
     setDescription('');
   };
 
-  const handleDeleteWorld = (id: string, worldName: string) => {
+  const handleDeleteWorld = async (id: string, worldName: string) => {
     if (window.confirm(`Are you sure you want to remove world "${worldName}" from your lore library?`)) {
-      MockDataService.deleteWorld(id);
-      setWorlds(MockDataService.getWorlds());
+      try {
+        await worldApi.deleteWorld(id);
+      } catch {
+        MockDataService.deleteWorld(id);
+      }
+      loadWorlds();
       toast.success(`Removed "${worldName}" from World Lore`);
     }
   };

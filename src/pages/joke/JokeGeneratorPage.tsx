@@ -4,6 +4,7 @@ import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { JokeCard } from '@/components/story/JokeCard';
 import { MockDataService } from '@/services/mockDataService';
+import { jokeApi } from '@/services/api/jokeApi';
 import { Joke } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -15,10 +16,23 @@ export const JokeGeneratorPage: React.FC = () => {
   const [jokes, setJokes] = useState<Joke[]>([]);
 
   useEffect(() => {
-    setJokes(MockDataService.getJokes());
+    loadJokes();
   }, []);
 
-  const handleGenerateJoke = () => {
+  const loadJokes = async () => {
+    try {
+      const res = await jokeApi.getJokes();
+      if (res && res.success && res.data) {
+        setJokes(res.data);
+      } else {
+        setJokes(MockDataService.getJokes());
+      }
+    } catch {
+      setJokes(MockDataService.getJokes());
+    }
+  };
+
+  const handleGenerateJoke = async () => {
     setIsGenerating(true);
 
     const jokeTemplates = [
@@ -40,9 +54,10 @@ export const JokeGeneratorPage: React.FC = () => {
       },
     ];
 
-    setTimeout(() => {
-      const selected = jokeTemplates[Math.floor(Math.random() * jokeTemplates.length)];
-      const newJoke = MockDataService.saveJoke({
+    const selected = jokeTemplates[Math.floor(Math.random() * jokeTemplates.length)];
+
+    try {
+      const res = await jokeApi.createJoke({
         setup: selected.setup,
         punchline: selected.punchline,
         category: style,
@@ -51,10 +66,29 @@ export const JokeGeneratorPage: React.FC = () => {
         isPublic: true,
       });
 
-      setJokes([newJoke, ...jokes]);
+      if (res && res.success && res.data) {
+        setJokes([res.data, ...jokes]);
+        toast.success('New AI joke synthesized and saved to database!');
+      } else {
+        const fallback = MockDataService.saveJoke({
+          setup: selected.setup,
+          punchline: selected.punchline,
+          category: style,
+        });
+        setJokes([fallback, ...jokes]);
+        toast.success('New AI joke synthesized!');
+      }
+    } catch {
+      const fallback = MockDataService.saveJoke({
+        setup: selected.setup,
+        punchline: selected.punchline,
+        category: style,
+      });
+      setJokes([fallback, ...jokes]);
+      toast.success('New AI joke synthesized!');
+    } finally {
       setIsGenerating(false);
-      toast.success('New AI joke synthesized and saved to vault!');
-    }, 800);
+    }
   };
 
   return (

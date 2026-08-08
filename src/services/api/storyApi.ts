@@ -7,6 +7,11 @@ export const storyApi = {
     return res.data;
   },
 
+  getPublicStories: async (params?: Record<string, string | number>): Promise<ApiResponse<Story[]>> => {
+    const res = await axiosInstance.get('/stories', { params: { isPublic: 'true', ...params } });
+    return res.data;
+  },
+
   getStoryById: async (id: string): Promise<ApiResponse<Story & { chapters?: StoryChapter[] }>> => {
     const res = await axiosInstance.get(`/stories/${id}`);
     return res.data;

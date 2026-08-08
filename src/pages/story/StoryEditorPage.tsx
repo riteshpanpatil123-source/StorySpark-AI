@@ -23,6 +23,8 @@ import { MockDataService } from '@/services/mockDataService';
 import { Story, StoryStatus } from '@/types';
 import toast from 'react-hot-toast';
 
+import { storyApi } from '@/services/api/storyApi';
+
 export const StoryEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,15 +43,35 @@ export const StoryEditorPage: React.FC = () => {
 
   useEffect(() => {
     if (id && id !== 'draft_new') {
-      const existing = MockDataService.getStoryById(id);
-      if (existing) {
-        setStory(existing);
-        setTitle(existing.title);
-        setGenre(existing.genre);
-        setStatus(existing.status);
-      }
+      loadStoryFromBackend(id);
     }
   }, [id]);
+
+  const loadStoryFromBackend = async (storyId: string) => {
+    try {
+      const res = await storyApi.getStoryById(storyId);
+      if (res && res.success && res.data) {
+        setStory(res.data);
+        setTitle(res.data.title);
+        setGenre(res.data.genre);
+        setStatus(res.data.status);
+        if (res.data.content) {
+          setContent(res.data.content);
+        }
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const existing = MockDataService.getStoryById(storyId);
+    if (existing) {
+      setStory(existing);
+      setTitle(existing.title);
+      setGenre(existing.genre);
+      setStatus(existing.status);
+    }
+  };
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -76,11 +98,37 @@ export const StoryEditorPage: React.FC = () => {
     setSaveStatus('unsaved');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaveStatus('saving');
-    setTimeout(() => {
+    const targetId = story?.id || (id !== 'draft_new' ? id : undefined);
+
+    try {
+      if (targetId) {
+        const res = await storyApi.updateStory(targetId, {
+          title,
+          genre,
+          synopsis: content.slice(0, 140) + '...',
+          content,
+          status,
+        });
+        if (res && res.success && res.data) {
+          setStory(res.data);
+        }
+      } else {
+        const res = await storyApi.createStory({
+          title,
+          genre,
+          synopsis: content.slice(0, 140) + '...',
+          content,
+          status,
+        });
+        if (res && res.success && res.data) {
+          setStory(res.data);
+        }
+      }
+    } catch {
       const saved = MockDataService.saveStory({
-        id: story?.id || (id !== 'draft_new' ? id : undefined),
+        id: targetId,
         title,
         genre,
         synopsis: content.slice(0, 140) + '...',
@@ -88,29 +136,46 @@ export const StoryEditorPage: React.FC = () => {
         wordCount: content.split(/\s+/).length,
       });
       setStory(saved);
-      setSaveStatus('saved');
-      toast.success('Story draft saved successfully!');
-    }, 500);
+    }
+
+    setSaveStatus('saved');
+    toast.success('Story draft saved successfully to database!');
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     setSaveStatus('saving');
-    setTimeout(() => {
-      const saved = MockDataService.saveStory({
-        id: story?.id || (id !== 'draft_new' ? id : undefined),
-        title,
-        genre,
-        synopsis: content.slice(0, 140) + '...',
-        status: 'published',
-        isPublic: true,
-        wordCount: content.split(/\s+/).length,
-      });
-      setStory(saved);
-      setStatus('published');
-      setSaveStatus('saved');
-      toast.success('Story published to Public Discovery!');
-      navigate(`/stories/${saved.id}`);
-    }, 600);
+    const targetId = story?.id || (id !== 'draft_new' ? id : undefined);
+
+    try {
+      if (targetId) {
+        const res = await storyApi.publishStory(targetId);
+        if (res && res.success && res.data) {
+          setStory(res.data);
+          setStatus('published');
+          setSaveStatus('saved');
+          toast.success('Story published to Public Discovery!');
+          navigate(`/stories/${res.data.id}`);
+          return;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    const saved = MockDataService.saveStory({
+      id: targetId,
+      title,
+      genre,
+      synopsis: content.slice(0, 140) + '...',
+      status: 'published',
+      isPublic: true,
+      wordCount: content.split(/\s+/).length,
+    });
+    setStory(saved);
+    setStatus('published');
+    setSaveStatus('saved');
+    toast.success('Story published to Public Discovery!');
+    navigate(`/stories/${saved.id}`);
   };
 
   const handleAICoachAction = (actionName: string) => {

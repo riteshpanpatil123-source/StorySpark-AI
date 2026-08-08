@@ -12,8 +12,9 @@ export const aiApi = {
     return res.data;
   },
 
-  analyzeWriting: async (payload: AIWritingCoachPayload): Promise<ApiResponse<AIWritingCoachResponse>> => {
-    const res = await axiosInstance.post('/ai/writing-coach', payload);
+  analyzeWriting: async (payload: string | AIWritingCoachPayload): Promise<ApiResponse<AIWritingCoachResponse>> => {
+    const data = typeof payload === 'string' ? { text: payload } : payload;
+    const res = await axiosInstance.post('/ai/writing-coach', data);
     return res.data;
   },
 

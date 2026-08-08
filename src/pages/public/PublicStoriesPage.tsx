@@ -7,16 +7,31 @@ import { Badge } from '@/components/common/Badge';
 import { Card } from '@/components/common/Card';
 import { Avatar } from '@/components/common/Avatar';
 
+import { storyApi } from '@/services/api/storyApi';
+
 export const PublicStoriesPage: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
 
   useEffect(() => {
-    const allStories = MockDataService.getStories();
-    // Filter only public / published stories
-    setStories(allStories.filter((s) => s.isPublic || s.status === 'published'));
+    loadPublicStories();
   }, []);
+
+  const loadPublicStories = async () => {
+    try {
+      const res = await storyApi.getPublicStories();
+      if (res && res.success && res.data) {
+        setStories(res.data);
+      } else {
+        const allStories = MockDataService.getStories();
+        setStories(allStories.filter((s) => s.isPublic || s.status === 'published'));
+      }
+    } catch {
+      const allStories = MockDataService.getStories();
+      setStories(allStories.filter((s) => s.isPublic || s.status === 'published'));
+    }
+  };
 
   const genres = ['All', 'Sci-Fi', 'Fantasy', 'Mystery', 'Horror', 'Romance'];
 

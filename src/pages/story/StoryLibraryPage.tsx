@@ -22,6 +22,8 @@ import { MockDataService } from '@/services/mockDataService';
 import { Story } from '@/types';
 import toast from 'react-hot-toast';
 
+import { storyApi } from '@/services/api/storyApi';
+
 export const StoryLibraryPage: React.FC = () => {
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
@@ -35,14 +37,26 @@ export const StoryLibraryPage: React.FC = () => {
     loadStories();
   }, []);
 
-  const loadStories = () => {
-    const loaded = MockDataService.getStories();
-    setStories(loaded);
+  const loadStories = async () => {
+    try {
+      const res = await storyApi.getStories();
+      if (res && res.success && res.data) {
+        setStories(res.data);
+      } else {
+        setStories(MockDataService.getStories());
+      }
+    } catch {
+      setStories(MockDataService.getStories());
+    }
   };
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = async (id: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      MockDataService.deleteStory(id);
+      try {
+        await storyApi.deleteStory(id);
+      } catch {
+        MockDataService.deleteStory(id);
+      }
       loadStories();
       toast.success('Story removed from library');
     }
@@ -56,13 +70,21 @@ export const StoryLibraryPage: React.FC = () => {
     }
   };
 
-  const handleTogglePublish = (story: Story) => {
+  const handleTogglePublish = async (story: Story) => {
     const newStatus = story.status === 'published' ? 'draft' : 'published';
-    MockDataService.saveStory({
-      ...story,
-      status: newStatus,
-      isPublic: newStatus === 'published',
-    });
+    try {
+      if (newStatus === 'published') {
+        await storyApi.publishStory(story.id);
+      } else {
+        await storyApi.updateStory(story.id, { status: 'draft', isPublic: false });
+      }
+    } catch {
+      MockDataService.saveStory({
+        ...story,
+        status: newStatus,
+        isPublic: newStatus === 'published',
+      });
+    }
     loadStories();
     toast.success(`Story status changed to ${newStatus}`);
   };

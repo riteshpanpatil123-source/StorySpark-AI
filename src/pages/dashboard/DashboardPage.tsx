@@ -21,6 +21,10 @@ import { StoryCard } from '@/components/story/StoryCard';
 import { Story } from '@/types';
 import { MockDataService } from '@/services/mockDataService';
 
+import { storyApi } from '@/services/api/storyApi';
+import { characterApi } from '@/services/api/characterApi';
+import { worldApi } from '@/services/api/worldApi';
+
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
@@ -30,11 +34,40 @@ export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'published' | 'drafts'>('all');
 
   useEffect(() => {
-    const loadedStories = MockDataService.getStories();
-    setStories(loadedStories);
-    setCharacterCount(MockDataService.getCharacters().length);
-    setWorldCount(MockDataService.getWorlds().length);
+    loadDashboardMetrics();
   }, []);
+
+  const loadDashboardMetrics = async () => {
+    try {
+      const [sRes, cRes, wRes] = await Promise.allSettled([
+        storyApi.getStories(),
+        characterApi.getCharacters(),
+        worldApi.getWorlds(),
+      ]);
+
+      if (sRes.status === 'fulfilled' && sRes.value.success && sRes.value.data) {
+        setStories(sRes.value.data);
+      } else {
+        setStories(MockDataService.getStories());
+      }
+
+      if (cRes.status === 'fulfilled' && cRes.value.success && cRes.value.data) {
+        setCharacterCount(cRes.value.data.length);
+      } else {
+        setCharacterCount(MockDataService.getCharacters().length);
+      }
+
+      if (wRes.status === 'fulfilled' && wRes.value.success && wRes.value.data) {
+        setWorldCount(wRes.value.data.length);
+      } else {
+        setWorldCount(MockDataService.getWorlds().length);
+      }
+    } catch {
+      setStories(MockDataService.getStories());
+      setCharacterCount(MockDataService.getCharacters().length);
+      setWorldCount(MockDataService.getWorlds().length);
+    }
+  };
 
   const publishedCount = stories.filter((s) => s.status === 'published').length;
   const draftCount = stories.filter((s) => s.status === 'draft').length;

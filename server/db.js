@@ -155,6 +155,22 @@ export function initDb() {
     );
   `);
 
+  // 10. Jokes Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS jokes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      setup TEXT NOT NULL,
+      punchline TEXT NOT NULL,
+      category TEXT NOT NULL,
+      rating_average REAL DEFAULT 5.0,
+      rating_count INTEGER DEFAULT 1,
+      is_public INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
   // Seed default data if empty
   seedDefaultData();
 }
@@ -303,5 +319,16 @@ function seedDefaultData() {
       'Advanced Neural Cybernetics',
       '2026-08-02T18:00:00.000Z'
     );
+
+    // Initial Jokes
+    db.prepare(`
+      INSERT INTO jokes (id, user_id, setup, punchline, category, rating_average, rating_count, is_public, created_at)
+      VALUES (?, ?, ?, ?, ?, 4.9, 142, 1, ?)
+    `).run('jk_1', demoUserId, 'Why do programmers prefer dark mode?', 'Because light attracts bugs!', 'Dad Joke', '2026-08-01T10:00:00.000Z');
+
+    db.prepare(`
+      INSERT INTO jokes (id, user_id, setup, punchline, category, rating_average, rating_count, is_public, created_at)
+      VALUES (?, ?, ?, ?, ?, 4.7, 88, 1, ?)
+    `).run('jk_2', demoUserId, 'There are 10 types of people in the world...', 'Those who understand binary, and those who do not.', 'Pun', '2026-08-03T15:20:00.000Z');
   }
 }

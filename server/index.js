@@ -9,6 +9,7 @@ import storyRoutes from './routes/storyRoutes.js';
 import characterRoutes from './routes/characterRoutes.js';
 import worldRoutes from './routes/worldRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import jokeRoutes from './routes/jokeRoutes.js';
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/v1/stories', storyRoutes);
 app.use('/api/v1/characters', characterRoutes);
 app.use('/api/v1/worlds', worldRoutes);
 app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/jokes', jokeRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {

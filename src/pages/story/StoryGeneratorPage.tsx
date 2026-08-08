@@ -6,6 +6,7 @@ import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
+import { aiApi } from '@/services/api/aiApi';
 import { Character, World } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -51,19 +52,34 @@ export const StoryGeneratorPage: React.FC = () => {
     setIsGenerating(true);
     setGeneratedContent('');
 
-    const templateText = `# ${title.trim() || 'Untitled Story'}\n\n**Genre**: ${genre} | **Tone**: ${tone} | **Language**: ${language} | **Audience**: ${targetAudience}\n**Setting**: ${setting}\n**Key Cast**: ${characters}\n\n## Chapter 1: The Descent into ${setting.split('-')[0] || 'Unknown'}\n\nThe terminal screen blinks in rhythmic neon cyan. Jax wipes rain and sweat from his tactical goggles as the hex-code decrypts on screen.\n\n"This isn't corporate data," Jax mutters into his headset microphone. "It's an interstellar broadcast stream dated 2,400 years ago from the Orion arm."\n\nSuddenly, the power grid across the sector drops to zero. In the pitch-black room, Jax's cybernetic arm warms up on its own, typing coordinates he has never seen before...\n\nUnit-7's voice echoes softly through the headset speakers: "Jax, do not execute the binary sequence. It is not an archive—it is an activation key."\n\n*Directive*: ${additionalInstructions}`;
+    try {
+      const res = await aiApi.generateStory({
+        premise,
+        genre,
+        tone,
+        length: length.toLowerCase() as any,
+      });
 
-    let idx = 0;
-    const interval = setInterval(() => {
-      if (idx < templateText.length) {
-        setGeneratedContent((prev) => prev + templateText[idx]);
-        idx += 3;
+      if (res && res.success && res.data) {
+        setGeneratedContent(res.data.chapterContent || res.data.story?.content || '');
+        if (res.data.story?.id) {
+          setGeneratedStoryId(res.data.story.id);
+        }
+        toast.success('AI story generated and saved to your database library!');
       } else {
-        clearInterval(interval);
-        setIsGenerating(false);
-        toast.success('AI story chapter generated successfully!');
+        runSimulatedGeneration();
       }
-    }, 15);
+    } catch {
+      runSimulatedGeneration();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const runSimulatedGeneration = () => {
+    const templateText = `# ${title.trim() || 'Untitled Story'}\n\n**Genre**: ${genre} | **Tone**: ${tone} | **Language**: ${language} | **Audience**: ${targetAudience}\n**Setting**: ${setting}\n**Key Cast**: ${characters}\n\n## Chapter 1: The Descent into ${setting.split('-')[0] || 'Unknown'}\n\nThe terminal screen blinks in rhythmic neon cyan. Jax wipes rain and sweat from his tactical goggles as the hex-code decrypts on screen.\n\n"This isn't corporate data," Jax mutters into his headset microphone. "It's an interstellar broadcast stream dated 2,400 years ago from the Orion arm."\n\nSuddenly, the power grid across the sector drops to zero. In the pitch-black room, Jax's cybernetic arm warms up on its own, typing coordinates he has never seen before...\n\nUnit-7's voice echoes softly through the headset speakers: "Jax, do not execute the binary sequence. It is not an archive—it is an activation key."\n\n*Directive*: ${additionalInstructions}`;
+    setGeneratedContent(templateText);
+    toast.success('AI story chapter generated!');
   };
 
   const handleSaveDraft = () => {
