@@ -7,102 +7,121 @@ const router = express.Router();
 // POST /api/v1/ai/generate-story
 router.post('/generate-story', authenticateToken, async (req, res) => {
   try {
-    const { premise, genre, tone, length, characterIds, worldId, title } = req.body;
+    const {
+      premise,
+      genre,
+      tone,
+      length,
+      title,
+      setting,
+      characters,
+      language,
+      targetAudience,
+      additionalInstructions,
+      characterIds,
+      worldId,
+    } = req.body;
+
+    if (!premise || !premise.trim()) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        error: { code: 'INVALID_INPUT', message: 'Story premise is required.' },
+      });
+    }
 
     let characterContext = '';
+    if (characters && characters.trim()) {
+      characterContext += ` Cast & Characters: ${characters}.`;
+    }
     if (characterIds && Array.isArray(characterIds) && characterIds.length > 0) {
       const placeholders = characterIds.map(() => '?').join(',');
       const chars = db.prepare(`SELECT name, archetype, backstory FROM characters WHERE id IN (${placeholders})`).all(...characterIds);
       if (chars.length > 0) {
-        characterContext = ' Key Characters: ' + chars.map(c => `${c.name} (${c.archetype}): ${c.backstory}`).join('; ');
+        characterContext += ' Vault Characters: ' + chars.map((c) => `${c.name} (${c.archetype}): ${c.backstory}`).join('; ');
       }
     }
 
     let worldContext = '';
+    if (setting && setting.trim()) {
+      worldContext += ` Setting: ${setting}.`;
+    }
     if (worldId) {
       const world = db.prepare('SELECT name, description, rules FROM worlds WHERE id = ?').get(worldId);
       if (world) {
-        worldContext = ` Setting & World Rules: ${world.name} - ${world.description}. Rules: ${world.rules}`;
+        worldContext += ` Vault Realm: ${world.name} - ${world.description}. Lore Rules: ${world.rules}`;
       }
     }
 
     const aiApiKey = process.env.AI_API_KEY;
     let generatedChapterText = '';
+    let usedProvider = 'server_synthesis';
+
+    const systemPrompt = `You are a master fiction author and world-class storyteller.
+Write an engaging, immersive Chapter 1 for a story with the following details:
+- Title: ${title || 'Untitled Narrative'}
+- Genre: ${genre || 'Sci-Fi'}
+- Tone: ${tone || 'Suspenseful'}
+- Target Length: ${length || 'Medium'}
+- Target Audience: ${targetAudience || 'General Audience'}
+- Language: ${language || 'English'}
+- Premise: ${premise}
+${worldContext}
+${characterContext}
+${additionalInstructions ? `- Additional Guidance: ${additionalInstructions}` : ''}
+
+Format the chapter with a catchy title heading and markdown styling. Output only the narrative chapter.`;
 
     if (aiApiKey && aiApiKey.trim() !== '') {
-      // Call Google Gemini API or OpenAI API
       try {
-        const prompt = `You are a master storyteller. Write an engaging Chapter 1 for a ${genre} story with a ${tone} tone. Premise: ${premise}.${characterContext}${worldContext}`;
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiApiKey.trim()}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
+            contents: [{ parts: [{ text: systemPrompt }] }],
+            generationConfig: {
+              temperature: 0.85,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 2048,
+            },
+          }),
         });
 
-        if (aiResponse.ok) {
-          const data = await aiResponse.json();
-          generatedChapterText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (response.ok) {
+          const data = await response.json();
+          const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText && candidateText.trim()) {
+            generatedChapterText = candidateText;
+            usedProvider = 'gemini-1.5-flash';
+          }
+        } else {
+          console.warn(`Gemini API returned status ${response.status}. Falling back to server synthesis.`);
         }
       } catch (err) {
-        console.warn('External AI API call failed, falling back to server synthesis:', err.message);
+        console.warn('External AI API network request failed:', err.message);
       }
     }
 
     if (!generatedChapterText) {
-      // Server Synthesis Fallback
-      const storyTitle = title || 'Echoes of the Void';
+      // Structured fallback output
+      const storyTitle = title || 'Echoes of Orion';
       const selectedGenre = genre || 'Sci-Fi';
       const selectedTone = tone || 'Suspenseful';
-      
-      generatedChapterText = `# ${storyTitle}\n\n**Genre**: ${selectedGenre} | **Tone**: ${selectedTone}\n${worldContext}\n${characterContext}\n\n## Chapter 1: The Activation Sequence\n\nThe control interface blinks in rhythmic cyan luminofores as the terminal processes incoming quantum streams.\n\n"The signal originates beyond Sector 7," Jax mutters into the comm link, adjusting tactical eyewear as rain splatters against the ferro-glass pane. "It is an unencrypted archival transmission dated 2,400 solar cycles ago."\n\nSuddenly, ambient power across the station cascades to zero. In the pitch-black chamber, the central core ignites with a blinding crystalline frequency...\n\nA soft synthesized voice echoes through the silence: "Directive acknowledged. Initiating deep space transmission protocol."`;
+
+      generatedChapterText = `# ${storyTitle}\n\n**Genre**: ${selectedGenre} | **Tone**: ${selectedTone} | **Audience**: ${targetAudience || 'General'}\n${worldContext}\n${characterContext}\n\n## Chapter 1: The Activation Sequence\n\nThe control interface blinks in rhythmic cyan luminofores as the terminal processes incoming quantum streams.\n\n"The signal originates beyond Sector 7," Jax mutters into the comm link, adjusting tactical eyewear as rain splatters against the ferro-glass pane. "It is an unencrypted archival transmission dated 2,400 solar cycles ago."\n\nSuddenly, ambient power across the station cascades to zero. In the pitch-black chamber, the central core ignites with a blinding crystalline frequency...\n\nA soft synthesized voice echoes through the silence: "Directive acknowledged. Initiating deep space transmission protocol."`;
     }
-
-    // Automatically save story to user's database library
-    const now = new Date().toISOString();
-    const storyId = 'story_' + Date.now();
-    const slug = (title || 'AI Story').toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-4);
-    const wordCount = generatedChapterText.split(/\s+/).filter(Boolean).length;
-
-    db.prepare(`
-      INSERT INTO stories (id, user_id, author_name, author_avatar, title, slug, synopsis, genre, content, tags, cover_image_url, status, is_public, word_count, view_count, like_count, comment_count, rating_average, rating_count, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 0, ?, 1, 0, 0, 5.0, 1, ?, ?)
-    `).run(
-      storyId,
-      req.user.id,
-      req.user.displayName || req.user.username || 'Creator',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-      title || 'AI Generated Story',
-      slug,
-      premise || 'An AI generated narrative plot.',
-      genre || 'Sci-Fi',
-      generatedChapterText,
-      JSON.stringify([genre ? genre.toLowerCase() : 'ai-generated', tone ? tone.toLowerCase() : 'suspenseful']),
-      'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80',
-      wordCount,
-      now,
-      now
-    );
-
-    const savedStory = db.prepare('SELECT * FROM stories WHERE id = ?').get(storyId);
 
     return res.status(200).json({
       success: true,
       statusCode: 200,
-      message: 'AI story generated and saved to database',
+      message: 'AI story content generated successfully',
       data: {
-        story: {
-          id: savedStory.id,
-          title: savedStory.title,
-          genre: savedStory.genre,
-          synopsis: savedStory.synopsis,
-          content: savedStory.content,
-          status: savedStory.status,
-          wordCount: savedStory.word_count,
-          createdAt: savedStory.created_at,
-        },
+        provider: usedProvider,
         chapterContent: generatedChapterText,
+        title: title || 'AI Generated Story',
+        genre: genre || 'Sci-Fi',
+        synopsis: premise.slice(0, 150) + '...',
       },
     });
   } catch (error) {

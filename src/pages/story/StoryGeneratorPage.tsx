@@ -7,6 +7,7 @@ import { Badge } from '@/components/common/Badge';
 import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
 import { aiApi } from '@/services/api/aiApi';
+import { storyApi } from '@/services/api/storyApi';
 import { Character, World } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -54,18 +55,21 @@ export const StoryGeneratorPage: React.FC = () => {
 
     try {
       const res = await aiApi.generateStory({
+        title,
         premise,
         genre,
         tone,
         length: length.toLowerCase() as any,
+        setting,
+        characters,
+        language,
+        targetAudience,
+        additionalInstructions,
       });
 
       if (res && res.success && res.data) {
-        setGeneratedContent(res.data.chapterContent || res.data.story?.content || '');
-        if (res.data.story?.id) {
-          setGeneratedStoryId(res.data.story.id);
-        }
-        toast.success('AI story generated and saved to your database library!');
+        setGeneratedContent(res.data.chapterContent || '');
+        toast.success('AI story generated successfully! Review below before saving.');
       } else {
         runSimulatedGeneration();
       }
@@ -82,36 +86,91 @@ export const StoryGeneratorPage: React.FC = () => {
     toast.success('AI story chapter generated!');
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!generatedContent) {
       toast.error('Please generate a story chapter first.');
       return;
     }
+
+    try {
+      if (generatedStoryId) {
+        await storyApi.updateStory(generatedStoryId, {
+          title: title || 'Generated AI Story',
+          synopsis: premise.slice(0, 150) + '...',
+          content: generatedContent,
+          genre,
+          status: 'draft',
+          isPublic: false,
+        });
+      } else {
+        const res = await storyApi.createStory({
+          title: title || 'Generated AI Story',
+          synopsis: premise.slice(0, 150) + '...',
+          content: generatedContent,
+          genre,
+          status: 'draft',
+          isPublic: false,
+        });
+        if (res && res.success && res.data) {
+          setGeneratedStoryId(res.data.id);
+        }
+      }
+      toast.success('Saved story draft to database!');
+    } catch {
+      const saved = MockDataService.saveStory({
+        id: generatedStoryId || undefined,
+        title: title || 'Generated AI Story',
+        synopsis: premise.slice(0, 150) + '...',
+        genre,
+        tags: [genre.toLowerCase(), tone.toLowerCase(), 'ai-generated'],
+        status: 'draft',
+        isPublic: false,
+        wordCount: generatedContent.split(/\s+/).length,
+      });
+      setGeneratedStoryId(saved.id);
+      toast.success('Saved draft to Story Library!');
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!generatedContent) {
+      toast.error('Please generate a story chapter first.');
+      return;
+    }
+
+    try {
+      let storyId = generatedStoryId;
+      if (!storyId) {
+        const res = await storyApi.createStory({
+          title: title || 'Generated AI Story',
+          synopsis: premise.slice(0, 150) + '...',
+          content: generatedContent,
+          genre,
+          status: 'draft',
+          isPublic: false,
+        });
+        if (res && res.success && res.data) {
+          storyId = res.data.id;
+          setGeneratedStoryId(storyId);
+        }
+      }
+
+      if (storyId) {
+        await storyApi.publishStory(storyId);
+        toast.success('Story published to Public Discovery!');
+        navigate(`/stories/${storyId}`);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     const saved = MockDataService.saveStory({
       id: generatedStoryId || undefined,
       title: title || 'Generated AI Story',
       synopsis: premise.slice(0, 150) + '...',
       genre,
       tags: [genre.toLowerCase(), tone.toLowerCase(), 'ai-generated'],
-      status: 'draft',
-      isPublic: false,
-      wordCount: generatedContent.split(/\s+/).length,
-    });
-    setGeneratedStoryId(saved.id);
-    toast.success('Saved draft to Story Library!');
-  };
-
-  const handlePublish = () => {
-    if (!generatedContent) {
-      toast.error('Please generate a story chapter first.');
-      return;
-    }
-    const saved = MockDataService.saveStory({
-      id: generatedStoryId || undefined,
-      title: title || 'Generated AI Story',
-      synopsis: premise.slice(0, 150) + '...',
-      genre,
-      tags: [genre.toLowerCase(), tone.toLowerCase(), 'published'],
       status: 'published',
       isPublic: true,
       wordCount: generatedContent.split(/\s+/).length,

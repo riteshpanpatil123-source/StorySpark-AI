@@ -107,6 +107,12 @@ export interface AIGenerateStoryPayload {
   genre: string;
   tone: string;
   length: 'short' | 'medium' | 'long';
+  title?: string;
+  setting?: string;
+  characters?: string;
+  language?: string;
+  targetAudience?: string;
+  additionalInstructions?: string;
   characterIds?: string[];
   worldId?: string;
 }
