@@ -8,6 +8,7 @@ import { Input } from '@/components/common/Input';
 import { MockDataService } from '@/services/mockDataService';
 import { aiApi } from '@/services/api/aiApi';
 import { storyApi } from '@/services/api/storyApi';
+import { characterApi } from '@/services/api/characterApi';
 import { Character, World } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -31,7 +32,17 @@ export const StoryGeneratorPage: React.FC = () => {
   const [savedWorlds, setSavedWorlds] = useState<World[]>([]);
 
   useEffect(() => {
-    setSavedCharacters(MockDataService.getCharacters());
+    characterApi.getCharacters()
+      .then((res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          setSavedCharacters(res.data);
+        } else {
+          setSavedCharacters(MockDataService.getCharacters());
+        }
+      })
+      .catch(() => {
+        setSavedCharacters(MockDataService.getCharacters());
+      });
     setSavedWorlds(MockDataService.getWorlds());
   }, []);
 
@@ -69,21 +80,20 @@ export const StoryGeneratorPage: React.FC = () => {
 
       if (res && res.success && res.data) {
         setGeneratedContent(res.data.chapterContent || '');
-        toast.success('AI story generated successfully! Review below before saving.');
+        const storyObj = (res.data as any).story;
+        if (storyObj && storyObj.id) {
+          setGeneratedStoryId(storyObj.id);
+        }
+        toast.success('AI story generated and saved to database!');
       } else {
-        runSimulatedGeneration();
+        toast.error('AI story generation failed. Please try again.');
       }
-    } catch {
-      runSimulatedGeneration();
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      toast.error(error?.response?.data?.error?.message || 'Failed to generate AI story. Please check backend.');
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const runSimulatedGeneration = () => {
-    const templateText = `# ${title.trim() || 'Untitled Story'}\n\n**Genre**: ${genre} | **Tone**: ${tone} | **Language**: ${language} | **Audience**: ${targetAudience}\n**Setting**: ${setting}\n**Key Cast**: ${characters}\n\n## Chapter 1: The Descent into ${setting.split('-')[0] || 'Unknown'}\n\nThe terminal screen blinks in rhythmic neon cyan. Jax wipes rain and sweat from his tactical goggles as the hex-code decrypts on screen.\n\n"This isn't corporate data," Jax mutters into his headset microphone. "It's an interstellar broadcast stream dated 2,400 years ago from the Orion arm."\n\nSuddenly, the power grid across the sector drops to zero. In the pitch-black room, Jax's cybernetic arm warms up on its own, typing coordinates he has never seen before...\n\nUnit-7's voice echoes softly through the headset speakers: "Jax, do not execute the binary sequence. It is not an archive—it is an activation key."\n\n*Directive*: ${additionalInstructions}`;
-    setGeneratedContent(templateText);
-    toast.success('AI story chapter generated!');
   };
 
   const handleSaveDraft = async () => {
@@ -102,6 +112,7 @@ export const StoryGeneratorPage: React.FC = () => {
           status: 'draft',
           isPublic: false,
         });
+        toast.success('Story draft updated in database!');
       } else {
         const res = await storyApi.createStory({
           title: title || 'Generated AI Story',
@@ -113,22 +124,11 @@ export const StoryGeneratorPage: React.FC = () => {
         });
         if (res && res.success && res.data) {
           setGeneratedStoryId(res.data.id);
+          toast.success('Story draft saved to database!');
         }
       }
-      toast.success('Saved story draft to database!');
-    } catch {
-      const saved = MockDataService.saveStory({
-        id: generatedStoryId || undefined,
-        title: title || 'Generated AI Story',
-        synopsis: premise.slice(0, 150) + '...',
-        genre,
-        tags: [genre.toLowerCase(), tone.toLowerCase(), 'ai-generated'],
-        status: 'draft',
-        isPublic: false,
-        wordCount: generatedContent.split(/\s+/).length,
-      });
-      setGeneratedStoryId(saved.id);
-      toast.success('Saved draft to Story Library!');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || 'Failed to save story draft to database.');
     }
   };
 
@@ -161,23 +161,9 @@ export const StoryGeneratorPage: React.FC = () => {
         navigate(`/stories/${storyId}`);
         return;
       }
-    } catch {
-      // Fallback
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || 'Failed to publish story.');
     }
-
-    const saved = MockDataService.saveStory({
-      id: generatedStoryId || undefined,
-      title: title || 'Generated AI Story',
-      synopsis: premise.slice(0, 150) + '...',
-      genre,
-      tags: [genre.toLowerCase(), tone.toLowerCase(), 'ai-generated'],
-      status: 'published',
-      isPublic: true,
-      wordCount: generatedContent.split(/\s+/).length,
-    });
-    setGeneratedStoryId(saved.id);
-    toast.success('Story published to Public Discovery!');
-    navigate(`/stories/${saved.id}`);
   };
 
   return (
@@ -428,15 +414,11 @@ export const StoryGeneratorPage: React.FC = () => {
                       variant="ai-gradient"
                       size="sm"
                       onClick={() => {
-                        const saved = MockDataService.saveStory({
-                          title,
-                          synopsis: premise,
-                          genre,
-                          tags: [genre.toLowerCase(), tone.toLowerCase()],
-                          status: 'draft',
-                          wordCount: generatedContent.split(/\s+/).length,
-                        });
-                        navigate(`/app/editor/${saved.id}`);
+                        if (generatedStoryId) {
+                          navigate(`/app/editor/${generatedStoryId}`);
+                        } else {
+                          handleSaveDraft();
+                        }
                       }}
                       rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                     >
@@ -445,6 +427,23 @@ export const StoryGeneratorPage: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {generatedContent && generatedStoryId && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="font-semibold">Saved in Database & My Library (Draft)</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-emerald-600 dark:text-emerald-300 hover:text-emerald-800"
+                    onClick={() => navigate('/app/library')}
+                  >
+                    Go to My Library →
+                  </Button>
+                </div>
+              )}
 
               <div className="font-serif text-sm leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[400px] p-2">
                 {generatedContent || (

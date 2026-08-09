@@ -40,11 +40,11 @@ export const StoryLibraryPage: React.FC = () => {
   const loadStories = async () => {
     try {
       const res = await storyApi.getStories();
-      if (res && res.success && res.data) {
+      if (res && res.success && Array.isArray(res.data)) {
         setStories(res.data);
-      } else {
-        setStories(MockDataService.getStories());
+        return;
       }
+      setStories(MockDataService.getStories());
     } catch {
       setStories(MockDataService.getStories());
     }

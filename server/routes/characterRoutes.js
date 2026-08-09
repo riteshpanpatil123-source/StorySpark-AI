@@ -84,15 +84,112 @@ router.post('/', authenticateToken, (req, res) => {
   }
 });
 
+// GET /api/v1/characters/:id
+router.get('/:id', authenticateToken, (req, res) => {
+  try {
+    const row = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
+    if (!row) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        error: { code: 'NOT_FOUND', message: 'Character not found.' },
+      });
+    }
+
+    // Security Check: Private character only accessible by owner
+    if (!Boolean(row.is_public) && row.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You do not have permission to access this private character.' },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Character retrieved successfully',
+      data: formatCharacter(row),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      error: { code: 'SERVER_ERROR', message: 'Failed to retrieve character.' },
+    });
+  }
+});
+
+// PATCH /api/v1/characters/:id
+router.patch('/:id', authenticateToken, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        error: { code: 'NOT_FOUND', message: 'Character not found.' },
+      });
+    }
+
+    if (existing.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You are not authorized to modify this character.' },
+      });
+    }
+
+    const { name, archetype, avatarUrl, personalityTraits, backstory, speechPattern, isPublic } = req.body;
+
+    const newName = name !== undefined ? name : existing.name;
+    const newArchetype = archetype !== undefined ? archetype : existing.archetype;
+    const newAvatar = avatarUrl !== undefined ? avatarUrl : existing.avatar_url;
+    const newTraits = personalityTraits !== undefined ? JSON.stringify(personalityTraits) : existing.personality_traits;
+    const newBackstory = backstory !== undefined ? backstory : existing.backstory;
+    const newSpeech = speechPattern !== undefined ? speechPattern : existing.speech_pattern;
+    const newIsPublic = isPublic !== undefined ? (isPublic ? 1 : 0) : existing.is_public;
+
+    db.prepare(`
+      UPDATE characters
+      SET name = ?, archetype = ?, avatar_url = ?, personality_traits = ?, backstory = ?, speech_pattern = ?, is_public = ?
+      WHERE id = ?
+    `).run(newName, newArchetype, newAvatar, newTraits, newBackstory, newSpeech, newIsPublic, req.params.id);
+
+    const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Character updated successfully',
+      data: formatCharacter(updated),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      error: { code: 'SERVER_ERROR', message: 'Failed to update character.' },
+    });
+  }
+});
+
 // DELETE /api/v1/characters/:id
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
     const existing = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.params.id);
-    if (!existing || existing.user_id !== req.user.id) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         statusCode: 404,
-        error: { code: 'NOT_FOUND', message: 'Character not found or unauthorized.' },
+        error: { code: 'NOT_FOUND', message: 'Character not found.' },
+      });
+    }
+
+    if (existing.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You are not authorized to delete this character.' },
       });
     }
 

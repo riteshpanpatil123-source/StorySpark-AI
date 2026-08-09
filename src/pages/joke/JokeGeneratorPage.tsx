@@ -5,6 +5,7 @@ import { Card } from '@/components/common/Card';
 import { JokeCard } from '@/components/story/JokeCard';
 import { MockDataService } from '@/services/mockDataService';
 import { jokeApi } from '@/services/api/jokeApi';
+import { aiApi } from '@/services/api/aiApi';
 import { Joke } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -22,11 +23,11 @@ export const JokeGeneratorPage: React.FC = () => {
   const loadJokes = async () => {
     try {
       const res = await jokeApi.getJokes();
-      if (res && res.success && res.data) {
+      if (res && res.success && Array.isArray(res.data)) {
         setJokes(res.data);
-      } else {
-        setJokes(MockDataService.getJokes());
+        return;
       }
+      setJokes(MockDataService.getJokes());
     } catch {
       setJokes(MockDataService.getJokes());
     }
@@ -35,57 +36,20 @@ export const JokeGeneratorPage: React.FC = () => {
   const handleGenerateJoke = async () => {
     setIsGenerating(true);
 
-    const jokeTemplates = [
-      {
-        setup: `Why did the AI language model refuse to eat at the restaurant?`,
-        punchline: `Because it kept getting stuck in an infinite prompt loop!`,
-      },
-      {
-        setup: `How many full-stack developers does it take to change a lightbulb?`,
-        punchline: `None. That's a hardware problem, and the API already returns bright=true!`,
-      },
-      {
-        setup: `Why do programmers hate nature?`,
-        punchline: `It has too many bugs and no stack overflow!`,
-      },
-      {
-        setup: `What is an AI's favorite genre of music?`,
-        punchline: `Heavy Algorhythms!`,
-      },
-    ];
-
-    const selected = jokeTemplates[Math.floor(Math.random() * jokeTemplates.length)];
-
     try {
-      const res = await jokeApi.createJoke({
-        setup: selected.setup,
-        punchline: selected.punchline,
-        category: style,
-        ratingAverage: 5.0,
-        ratingCount: 1,
-        isPublic: true,
+      const res = await aiApi.generateJoke({
+        topic: `${topic} (${tone})`,
+        style,
       });
 
       if (res && res.success && res.data) {
         setJokes([res.data, ...jokes]);
         toast.success('New AI joke synthesized and saved to database!');
       } else {
-        const fallback = MockDataService.saveJoke({
-          setup: selected.setup,
-          punchline: selected.punchline,
-          category: style,
-        });
-        setJokes([fallback, ...jokes]);
-        toast.success('New AI joke synthesized!');
+        toast.error('Failed to generate joke.');
       }
-    } catch {
-      const fallback = MockDataService.saveJoke({
-        setup: selected.setup,
-        punchline: selected.punchline,
-        category: style,
-      });
-      setJokes([fallback, ...jokes]);
-      toast.success('New AI joke synthesized!');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || 'AI joke generation failed.');
     } finally {
       setIsGenerating(false);
     }

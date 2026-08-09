@@ -76,15 +76,112 @@ router.post('/', authenticateToken, (req, res) => {
   }
 });
 
+// GET /api/v1/worlds/:id
+router.get('/:id', authenticateToken, (req, res) => {
+  try {
+    const row = db.prepare('SELECT * FROM worlds WHERE id = ?').get(req.params.id);
+    if (!row) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        error: { code: 'NOT_FOUND', message: 'World not found.' },
+      });
+    }
+
+    // Security Check: Private world only accessible by owner
+    if (!Boolean(row.is_public) && row.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You do not have permission to access this private world.' },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'World retrieved successfully',
+      data: formatWorld(row),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      error: { code: 'SERVER_ERROR', message: 'Failed to retrieve world.' },
+    });
+  }
+});
+
+// PATCH /api/v1/worlds/:id
+router.patch('/:id', authenticateToken, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM worlds WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        error: { code: 'NOT_FOUND', message: 'World not found.' },
+      });
+    }
+
+    if (existing.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You are not authorized to modify this world.' },
+      });
+    }
+
+    const { name, genre, description, rules, magicSystem, technologyLevel, isPublic } = req.body;
+
+    const newName = name !== undefined ? name : existing.name;
+    const newGenre = genre !== undefined ? genre : existing.genre;
+    const newDesc = description !== undefined ? description : existing.description;
+    const newRules = rules !== undefined ? rules : existing.rules;
+    const newMagic = magicSystem !== undefined ? magicSystem : existing.magic_system;
+    const newTech = technologyLevel !== undefined ? technologyLevel : existing.technology_level;
+    const newIsPublic = isPublic !== undefined ? (isPublic ? 1 : 0) : existing.is_public;
+
+    db.prepare(`
+      UPDATE worlds
+      SET name = ?, genre = ?, description = ?, rules = ?, magic_system = ?, technology_level = ?, is_public = ?
+      WHERE id = ?
+    `).run(newName, newGenre, newDesc, newRules, newMagic, newTech, newIsPublic, req.params.id);
+
+    const updated = db.prepare('SELECT * FROM worlds WHERE id = ?').get(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'World updated successfully',
+      data: formatWorld(updated),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      error: { code: 'SERVER_ERROR', message: 'Failed to update world.' },
+    });
+  }
+});
+
 // DELETE /api/v1/worlds/:id
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
     const existing = db.prepare('SELECT * FROM worlds WHERE id = ?').get(req.params.id);
-    if (!existing || existing.user_id !== req.user.id) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         statusCode: 404,
-        error: { code: 'NOT_FOUND', message: 'World not found or unauthorized.' },
+        error: { code: 'NOT_FOUND', message: 'World not found.' },
+      });
+    }
+
+    if (existing.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        statusCode: 403,
+        error: { code: 'FORBIDDEN', message: 'You are not authorized to delete this world.' },
       });
     }
 

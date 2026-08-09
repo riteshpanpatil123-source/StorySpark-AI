@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Trash2 } from 'lucide-react';
+import { Globe, Trash2, Edit } from 'lucide-react';
 import { World } from '@/types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -7,9 +7,10 @@ import { Badge } from '../common/Badge';
 export interface WorldCardProps {
   world: World;
   onDelete?: (id: string, name: string) => void;
+  onEdit?: (world: World) => void;
 }
 
-export const WorldCard: React.FC<WorldCardProps> = ({ world, onDelete }) => {
+export const WorldCard: React.FC<WorldCardProps> = ({ world, onDelete, onEdit }) => {
   return (
     <Card className="flex flex-col space-y-3 relative group">
       <div className="flex items-center justify-between">
@@ -23,6 +24,15 @@ export const WorldCard: React.FC<WorldCardProps> = ({ world, onDelete }) => {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="emerald" size="sm">{world.genre}</Badge>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(world)}
+              className="p-1 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+              title="Edit World Lore"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
           {onDelete && (
             <button
               onClick={() => onDelete(world.id, world.name)}

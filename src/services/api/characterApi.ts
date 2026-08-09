@@ -7,8 +7,18 @@ export const characterApi = {
     return res.data;
   },
 
+  getCharacterById: async (id: string): Promise<ApiResponse<Character>> => {
+    const res = await axiosInstance.get(`/characters/${id}`);
+    return res.data;
+  },
+
   createCharacter: async (data: Partial<Character>): Promise<ApiResponse<Character>> => {
     const res = await axiosInstance.post('/characters', data);
+    return res.data;
+  },
+
+  updateCharacter: async (id: string, data: Partial<Character>): Promise<ApiResponse<Character>> => {
+    const res = await axiosInstance.patch(`/characters/${id}`, data);
     return res.data;
   },
 

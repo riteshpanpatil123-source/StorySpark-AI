@@ -103,13 +103,13 @@ router.get('/:id', optionalAuth, (req, res) => {
       });
     }
 
-    // Security check: Private stories only accessible by owner
-    if (!story.is_public && story.status !== 'published') {
+    // Security check: Private/draft stories only accessible by owner
+    if (!Boolean(story.is_public) || story.status !== 'published') {
       if (!req.user || req.user.id !== story.user_id) {
         return res.status(403).json({
           success: false,
           statusCode: 403,
-          error: { code: 'FORBIDDEN', message: 'You do not have permission to view this draft story.' },
+          error: { code: 'FORBIDDEN', message: 'You do not have permission to view this private story.' },
         });
       }
     }

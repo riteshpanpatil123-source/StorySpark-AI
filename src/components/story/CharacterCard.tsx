@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit } from 'lucide-react';
 import { Character } from '@/types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -8,9 +8,10 @@ import { Avatar } from '../common/Avatar';
 export interface CharacterCardProps {
   character: Character;
   onDelete?: (id: string, name: string) => void;
+  onEdit?: (character: Character) => void;
 }
 
-export const CharacterCard: React.FC<CharacterCardProps> = ({ character, onDelete }) => {
+export const CharacterCard: React.FC<CharacterCardProps> = ({ character, onDelete, onEdit }) => {
   return (
     <Card className="flex flex-col space-y-4 relative group">
       <div className="flex items-center justify-between">
@@ -26,15 +27,26 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ character, onDelet
           </div>
         </div>
 
-        {onDelete && (
-          <button
-            onClick={() => onDelete(character.id, character.name)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-            title="Delete Character"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(character)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-500 hover:bg-brand-500/10 transition-colors"
+              title="Edit Character"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(character.id, character.name)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+              title="Delete Character"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
