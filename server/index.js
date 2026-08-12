@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+
 import { initDb } from './db.js';
 import authRoutes from './routes/authRoutes.js';
 import storyRoutes from './routes/storyRoutes.js';
@@ -12,7 +13,10 @@ import jokeRoutes from './routes/jokeRoutes.js';
 
 dotenv.config();
 
-// Initialize SQLite database tables & seed data
+// ==================================================
+// INITIALIZE DATABASE
+// ==================================================
+
 initDb();
 
 const app = express();
@@ -23,6 +27,7 @@ const PORT = process.env.PORT || 5000;
 // ==================================================
 
 const allowedOrigins = [
+  // Local development
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
@@ -36,18 +41,33 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header
-      // (for example, server-to-server requests)
+      // Allow requests without Origin
       if (!origin) {
         return callback(null, true);
       }
 
+      // Allow exact frontend URLs
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
+      // Allow Vercel preview deployments of this project
+      if (
+        origin.endsWith('.vercel.app') &&
+        (
+          origin.includes('story-spark') ||
+          origin.includes('storyspark')
+        )
+      ) {
+        console.log(`CORS allowed Vercel origin: ${origin}`);
+        return callback(null, true);
+      }
+
       console.log(`CORS blocked origin: ${origin}`);
-      return callback(new Error(`CORS blocked origin: ${origin}`));
+
+      return callback(
+        new Error(`CORS blocked origin: ${origin}`)
+      );
     },
 
     credentials: true,
@@ -72,7 +92,11 @@ app.use(
 // BODY PARSERS
 // ==================================================
 
-app.use(express.json({ limit: '10mb' }));
+app.use(
+  express.json({
+    limit: '10mb',
+  })
+);
 
 app.use(
   express.urlencoded({
@@ -135,13 +159,16 @@ app.use((req, res, next) => {
     return next();
   }
 
-  res.sendFile(path.join(distPath, 'index.html'), (err) => {
-    if (err) {
-      res
-        .status(404)
-        .send('StorySpark AI Backend API Active');
+  res.sendFile(
+    path.join(distPath, 'index.html'),
+    (err) => {
+      if (err) {
+        res
+          .status(404)
+          .send('StorySpark AI Backend API Active');
+      }
     }
-  });
+  );
 });
 
 // ==================================================
@@ -150,6 +177,18 @@ app.use((req, res, next) => {
 
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
+
+  // CORS error
+  if (err.message?.startsWith('CORS blocked origin:')) {
+    return res.status(403).json({
+      success: false,
+      statusCode: 403,
+      error: {
+        code: 'CORS_ERROR',
+        message: err.message,
+      },
+    });
+  }
 
   res.status(500).json({
     success: false,
